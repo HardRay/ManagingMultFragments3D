@@ -93,49 +93,55 @@ namespace Program
         //Метод изменения типа действия
         private void ChangeActionMode(int action)
         {
-            textBox1.Text = "0";
-            textBox2.Text = "0";
-            textBox3.Text = "0";
-            textBox4.Text = "1";
+            textBoxX.Text = "0";
+            textBoxY.Text = "0";
+            textBoxZ.Text = "0";
+            textBoxScale.Text = "1";
+            radioButton1.Visible = false;
+            radioButton2.Visible = false;
             if (actionMode == action)
             {
                 actionMode = 0;
-                textBox1.Enabled = false;
-                textBox2.Enabled = false;
-                textBox3.Enabled = false;
+                textBoxX.Enabled = false;
+                textBoxY.Enabled = false;
+                textBoxZ.Enabled = false;
             }
             else
             {
                 actionMode = action;
-                textBox1.Enabled = true;
-                textBox2.Enabled = true;
-                textBox3.Enabled = true;
+                textBoxX.Enabled = true;
+                textBoxY.Enabled = true;
+                textBoxZ.Enabled = true;
             }
                 
             if (actionMode == 3)
             {
                 ActionLabel.Text = "Масштабирование";
-                textBox1.Visible = false;
-                textBox2.Visible = false;
-                textBox3.Visible = false;
+                textBoxX.Visible = false;
+                textBoxY.Visible = false;
+                textBoxZ.Visible = false;
                 label2.Visible = false;
                 label3.Visible = false;
                 label4.Visible = false;
                 label5.Visible = true;
-                textBox4.Visible = true;
+                textBoxScale.Visible = true;
             }
             else
             {
-                textBox1.Visible = true;
-                textBox2.Visible = true;
-                textBox3.Visible = true;
+                textBoxX.Visible = true;
+                textBoxY.Visible = true;
+                textBoxZ.Visible = true;
                 label2.Visible = true;
                 label3.Visible = true;
                 label4.Visible = true;
                 label5.Visible = false;
-                textBox4.Visible = false;
+                textBoxScale.Visible = false;
                 if (actionMode == 2)
+                {
                     ActionLabel.Text = "Вращение";
+                    radioButton1.Visible = true;
+                    radioButton2.Visible = true;
+                }   
                 else if (actionMode == 1)
                     ActionLabel.Text = "Перемещение";
                 else
@@ -206,9 +212,29 @@ namespace Program
         {
             if (actionMode != 0 && activeAxis != '\0')
             {
+                //Изменение значения в поле "Масштаб"
+                if (actionMode == 3)
+                    textBoxScale.Text = Convert.ToString(Convert.ToInt32(textBoxScale.Text) + step);
+                //Изменение значения в координатных полях
+                else
+                {
+                    Control textbox = this.Controls.Find("textBox" + activeAxis, false).First();
+                    textbox.Text = Convert.ToString(Convert.ToInt32(textbox.Text) + step);
+                }
                 //Перемещение
                 if (actionMode == 1)
                     Transformation.Translate(activeAxis, step, activePolygons, ref points);
+                //Вращение
+                else if (actionMode == 2)
+                {
+                    bool RotateMode = false;
+                    if (radioButton1.Checked)
+                        RotateMode = false;
+                    else if (radioButton2.Checked)
+                        RotateMode = true;
+                    Transformation.Rotate(activeAxis, (float)(step * Math.PI / 180), activePolygons, ref points, RotateMode);
+                }
+                    
             }
         }
 
@@ -286,6 +312,20 @@ namespace Program
                 default: break;
             }
             glControl1.Invalidate();
+        }
+
+        private void radioButton1_CheckedChanged(object sender, EventArgs e)
+        {
+            textBoxX.Text = "0";
+            textBoxY.Text = "0";
+            textBoxZ.Text = "0";
+        }
+
+        private void radioButton2_CheckedChanged(object sender, EventArgs e)
+        {
+            textBoxX.Text = "0";
+            textBoxY.Text = "0";
+            textBoxZ.Text = "0";
         }
     }
 }
