@@ -21,6 +21,8 @@ namespace Program
         List<Num.Vector3> points;
         List<Polygon> polygons;
         List<Polygon> activePolygons;
+        List<Num.Vector3> originPoints;
+        int scaleValue;
         int actionMode;
         char activeAxis;
 
@@ -48,6 +50,8 @@ namespace Program
             polygons = new List<Polygon>();
             activePolygons = new List<Polygon>();
             actionMode = 0;
+            scaleValue = 100;
+            originPoints = new List<Num.Vector3>();
             CubeInit();
         }
 
@@ -96,7 +100,7 @@ namespace Program
             textBoxX.Text = "0";
             textBoxY.Text = "0";
             textBoxZ.Text = "0";
-            textBoxScale.Text = "1";
+            textBoxScale.Text = "100%";
             radioButton1.Visible = false;
             radioButton2.Visible = false;
             if (actionMode == action)
@@ -125,6 +129,9 @@ namespace Program
                 label4.Visible = false;
                 label5.Visible = true;
                 textBoxScale.Visible = true;
+                scaleValue = 100;
+                foreach (Num.Vector3 vec in points)
+                    originPoints.Add(vec);
             }
             else
             {
@@ -214,7 +221,10 @@ namespace Program
             {
                 //Изменение значения в поле "Масштаб"
                 if (actionMode == 3)
-                    textBoxScale.Text = Convert.ToString(Convert.ToInt32(textBoxScale.Text) + step);
+                {
+                    scaleValue += step;
+                    textBoxScale.Text = String.Format("{0}%",scaleValue);
+                }
                 //Изменение значения в координатных полях
                 else
                 {
@@ -234,10 +244,25 @@ namespace Program
                         RotateMode = true;
                     Transformation.Rotate(activeAxis, (float)(step * Math.PI / 180), activePolygons, ref points, RotateMode);
                 }
-                    
+                //Масштабирование
+                else if (actionMode == 3)
+                {
+                    Transformation.Scale((float)(scaleValue/100.0), originPoints, activePolygons, ref points);
+                }
             }
         }
 
+        private void RotateAxis(int value)
+        {
+            GL.MatrixMode(MatrixMode.Modelview);
+            if (activeAxis == 'X')
+                GL.Rotate(value, 1, 0, 0);
+            else if (activeAxis == 'Y')
+                GL.Rotate(value, 0, 1, 0);
+            else
+                GL.Rotate(value, 0, 0, 1);
+
+        }
         //Обработка клавиш
         private void Form1_KeyDown(object sender, KeyEventArgs e)
         {
@@ -247,20 +272,12 @@ namespace Program
             {
                 case (Keys.A):
                     {
-                        GL.MatrixMode(MatrixMode.Modelview);
-                        GL.Rotate(2, 0, 0, 1);
+                        RotateAxis(2);
                         break;
                     }
                 case (Keys.D):
                     {
-                        GL.MatrixMode(MatrixMode.Modelview);
-                        GL.Rotate(-2, 0, 0, 1);
-                        break;
-                    }
-                case (Keys.W):
-                    {
-                        GL.MatrixMode(MatrixMode.Modelview);
-                        GL.Rotate(2, 1, 0, 0);
+                        RotateAxis(-2);
                         break;
                     }
                 //case (Keys.S):

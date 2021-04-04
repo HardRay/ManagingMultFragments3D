@@ -33,7 +33,7 @@ namespace Program
         }
 
         //Метод обединения точек полигонов
-        static private List<int> UnionPoints(List<Polygon> polygons)
+        static public List<int> UnionPoints(List<Polygon> polygons)
         {
             List<int> rez = new List<int>();
             foreach (Polygon p in polygons)
@@ -48,7 +48,7 @@ namespace Program
             foreach (int i in indexes)
                 rez = Num.Vector3.Add(rez, points[i]);
             rez = new Num.Vector3(rez.X / indexes.Count, rez.Y / indexes.Count, rez.Z / indexes.Count);
-            return rez;
+            return Num.Vector3.Abs(rez);
         }
 
         //Метод перемещения точек полигонов
@@ -95,6 +95,15 @@ namespace Program
             }
         }
 
-        
+        //Метод масштабирования полигонов
+        static public void Scale(float value, List<Num.Vector3> originPoints, List<Polygon> polygons, ref List<Num.Vector3> points)
+        {
+            Num.Vector3 center = SearchCenter(polygons, points);
+            foreach (int i in UnionPoints(polygons))
+            {
+                Num.Vector3 vec = Num.Vector3.Subtract(originPoints[i], center);
+                points[i] = new Num.Vector3(vec.X * value + center.X, vec.Y * value + center.Y, vec.Z * value + center.Z);
+            }
+        }
     }
 }
