@@ -16,9 +16,13 @@ namespace Program
 {
     public partial class Form1 : Form
     {
+        const int step = 1;
         bool loaded = false;
         List<Num.Vector3> points;
         List<Polygon> polygons;
+        List<Polygon> activePolygons;
+        int actionMode;
+        char activeAxis;
 
         public Form1()
         {
@@ -40,9 +44,10 @@ namespace Program
             GL.Light(LightName.Light0, LightParameter.Position, new float[4] { 0, 0, 100, 1 });
             GL.Light(LightName.Light0, LightParameter.Diffuse, new float[3] { 1, 1, 1 });
 
-            //Нужно перенести в какой-нибудь другой Load
             points = new List<Num.Vector3>();
             polygons = new List<Polygon>();
+            activePolygons = new List<Polygon>();
+            actionMode = 0;
             CubeInit();
         }
 
@@ -76,8 +81,7 @@ namespace Program
             GL.Enable(EnableCap.Lighting);
             //Куб
             //Отрисовка активных полигонов
-            foreach (Polygon polygon in polygons)
-                if(polygon.isActive)
+            foreach (Polygon polygon in activePolygons)
                     polygon.Draw();
             //Отрисовка неактивных полигонов
             foreach (Polygon polygon in polygons)
@@ -86,46 +90,71 @@ namespace Program
             glControl1.SwapBuffers();
         }
 
-        private void glControl1_KeyDown(object sender, KeyEventArgs e)
+        //Метод изменения типа действия
+        private void ChangeActionMode(int action)
         {
-            if (!loaded) return;
-
-            switch (e.KeyCode)
+            textBox1.Text = "0";
+            textBox2.Text = "0";
+            textBox3.Text = "0";
+            textBox4.Text = "1";
+            if (actionMode == action)
             {
-                case (Keys.A):
-                    {
-                        GL.MatrixMode(MatrixMode.Modelview);
-                        GL.Rotate(2, 0, 0, 1);
-                        break;
-                    }
-                case (Keys.D):
-                    {
-                        GL.MatrixMode(MatrixMode.Modelview);
-                        GL.Rotate(-2, 0, 0, 1);
-                        break;
-                    }
-                case (Keys.W):
-                    {
-                        GL.MatrixMode(MatrixMode.Modelview);
-                        GL.Rotate(2, 1, 0, 0);
-                        break;
-                    }
-                case (Keys.S):
-                    {
-                        GL.MatrixMode(MatrixMode.Modelview);
-                        GL.Rotate(-2, 1, 0, 0);
-                        break;
-                    }
-                default: break;
+                actionMode = 0;
+                textBox1.Enabled = false;
+                textBox2.Enabled = false;
+                textBox3.Enabled = false;
             }
-
-            glControl1.Invalidate();
+            else
+            {
+                actionMode = action;
+                textBox1.Enabled = true;
+                textBox2.Enabled = true;
+                textBox3.Enabled = true;
+            }
+                
+            if (actionMode == 3)
+            {
+                ActionLabel.Text = "Масштабирование";
+                textBox1.Visible = false;
+                textBox2.Visible = false;
+                textBox3.Visible = false;
+                label2.Visible = false;
+                label3.Visible = false;
+                label4.Visible = false;
+                label5.Visible = true;
+                textBox4.Visible = true;
+            }
+            else
+            {
+                textBox1.Visible = true;
+                textBox2.Visible = true;
+                textBox3.Visible = true;
+                label2.Visible = true;
+                label3.Visible = true;
+                label4.Visible = true;
+                label5.Visible = false;
+                textBox4.Visible = false;
+                if (actionMode == 2)
+                    ActionLabel.Text = "Вращение";
+                else if (actionMode == 1)
+                    ActionLabel.Text = "Перемещение";
+                else
+                    ActionLabel.Text = "Выделение";
+            }
         }
 
-        private void glControl1_MouseMove(object sender, MouseEventArgs e)
+        private void ChangeActionAxis(char axis)
         {
-
-            glControl1.Invalidate();
+            activeAxis = axis;
+            label2.ForeColor = Color.Black;
+            label3.ForeColor = Color.Black;
+            label4.ForeColor = Color.Black;
+            if (activeAxis == 'X')
+                label2.ForeColor = Color.Firebrick;
+            else if (activeAxis == 'Y')
+                label3.ForeColor = Color.Firebrick;
+            else
+                label4.ForeColor = Color.Firebrick;
         }
 
         //Инициализация куба
@@ -160,11 +189,102 @@ namespace Program
 
         private void listBox1_Click(object sender, EventArgs e)
         {
-            for (int i = 0; i<listBox1.Items.Count; i++)
+            activePolygons.Clear();
+            for (int i = 0; i < listBox1.Items.Count; i++)
                 if (listBox1.GetSelected(i))
+                {
                     polygons[i].Select();
+                    activePolygons.Add(polygons[i]);
+                }
                 else
                     polygons[i].NotSelect();
+            glControl1.Invalidate();
+        }
+
+        //Метод обработки изменений
+        private void Transform(int step)
+        {
+            if (actionMode != 0 && activeAxis != '\0')
+            {
+                //Перемещение
+                if (actionMode == 1)
+                    Transformation.Translate(activeAxis, step, activePolygons, ref points);
+            }
+        }
+
+        //Обработка клавиш
+        private void Form1_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (!loaded) return;
+
+            switch (e.KeyCode)
+            {
+                case (Keys.A):
+                    {
+                        GL.MatrixMode(MatrixMode.Modelview);
+                        GL.Rotate(2, 0, 0, 1);
+                        break;
+                    }
+                case (Keys.D):
+                    {
+                        GL.MatrixMode(MatrixMode.Modelview);
+                        GL.Rotate(-2, 0, 0, 1);
+                        break;
+                    }
+                case (Keys.W):
+                    {
+                        GL.MatrixMode(MatrixMode.Modelview);
+                        GL.Rotate(2, 1, 0, 0);
+                        break;
+                    }
+                //case (Keys.S):
+                //    {
+                //        GL.MatrixMode(MatrixMode.Modelview);
+                //        GL.Rotate(-2, 1, 0, 0);
+                //        break;
+                //    }
+                case (Keys.G):
+                    {
+                        ChangeActionMode(1);
+                        break;
+                    }
+                case (Keys.R):
+                    {
+                        ChangeActionMode(2);
+                        break;
+                    }
+                case (Keys.S):
+                    {
+                        ChangeActionMode(3);
+                        break;
+                    }
+                case (Keys.X):
+                    {
+                        ChangeActionAxis('X');
+                        break;
+                    }
+                case (Keys.Y):
+                    {
+                        ChangeActionAxis('Y');
+                        break;
+                    }
+                case (Keys.Z):
+                    {
+                        ChangeActionAxis('Z');
+                        break;
+                    }
+                case (Keys.Left):
+                    {
+                        Transform(-step);
+                        break;
+                    }
+                case (Keys.Right):
+                    {
+                        Transform(step);
+                        break;
+                    }
+                default: break;
+            }
             glControl1.Invalidate();
         }
     }

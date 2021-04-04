@@ -83,6 +83,8 @@ namespace Program
             //Полигоны
             GL.Material(MaterialFace.FrontAndBack, MaterialParameter.AmbientAndDiffuse, polygonColor);
             GL.Begin(PrimitiveType.Polygon);
+            Num.Matrix4x4 matrix = Num.Matrix4x4.CreateTranslation(10,10,10);
+            Num.Vector4 p = new Num.Vector4(pointsList[0], 1);
             foreach (int i in points)
                 GL.Vertex3(pointsList[i].X, pointsList[i].Y, pointsList[i].Z);
             GL.End();
