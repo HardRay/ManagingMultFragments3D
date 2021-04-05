@@ -25,6 +25,7 @@ namespace Program
         int scaleValue;
         int actionMode;
         char activeAxis;
+        bool edgeMode;
 
         public Form1()
         {
@@ -41,9 +42,10 @@ namespace Program
             Matrix4 modelview = Matrix4.LookAt(70, 70, 70, 0, 0, 0, 0, 0, 1);
             GL.MatrixMode(MatrixMode.Modelview);
             GL.LoadMatrix(ref modelview);
+            GL.Enable(EnableCap.Normalize);
             GL.Enable(EnableCap.Lighting);
             GL.Enable(EnableCap.Light0);
-            GL.Light(LightName.Light0, LightParameter.Position, new float[4] { 0, 0, 100, 1 });
+            GL.Light(LightName.Light0, LightParameter.Position, new float[4] { 0, 30, 70, 1 });
             GL.Light(LightName.Light0, LightParameter.Diffuse, new float[3] { 1, 1, 1 });
 
             points = new List<Num.Vector3>();
@@ -52,6 +54,7 @@ namespace Program
             actionMode = 0;
             scaleValue = 100;
             originPoints = new List<Num.Vector3>();
+            edgeMode = true;
             CubeInit();
         }
 
@@ -64,19 +67,28 @@ namespace Program
             //Оси
             GL.Disable(EnableCap.Lighting);
             //Ox
-            GL.Color3(Color.Blue);            
+            if (activeAxis == 'X')
+                GL.Color3(Color.Khaki);
+            else
+                GL.Color3(Color.Blue);            
             GL.Begin(PrimitiveType.Lines);
             GL.Vertex3(0, 0, 0);
             GL.Vertex3(1000, 0, 0);
             GL.End();
             //Oy
-            GL.Color3(Color.Red);
+            if (activeAxis == 'Y')
+                GL.Color3(Color.Khaki);
+            else
+                GL.Color3(Color.Red);
             GL.Begin(PrimitiveType.Lines);
             GL.Vertex3(0, 0, 0);
             GL.Vertex3(0, 1000, 0);
             GL.End();
             //Oz
-            GL.Color3(Color.Green);
+            if (activeAxis == 'Z')
+                GL.Color3(Color.Khaki);
+            else
+                GL.Color3(Color.Green);
             GL.Begin(PrimitiveType.Lines);
             GL.Vertex3(0, 0, 0);
             GL.Vertex3(0, 0, 1000);
@@ -86,11 +98,11 @@ namespace Program
             //Куб
             //Отрисовка активных полигонов
             foreach (Polygon polygon in activePolygons)
-                    polygon.Draw();
+                    polygon.Draw(edgeMode);
             //Отрисовка неактивных полигонов
             foreach (Polygon polygon in polygons)
                 if (!polygon.isActive)
-                    polygon.Draw();
+                    polygon.Draw(edgeMode);
             glControl1.SwapBuffers();
         }
 
@@ -183,23 +195,33 @@ namespace Program
             points.Add(new Num.Vector3(width, width, width)); //6
             points.Add(new Num.Vector3(width, width, 0)); //7
 
-            //нижняя
-            polygons.Add(new Polygon(new List<int>() { 0, 1, 2, 3 }, ref points));
-            //верхняя
-            polygons.Add(new Polygon(new List<int>() { 4, 5, 6, 7 }, ref points));
-            /*левая*/
-            polygons.Add(new Polygon(new List<int>() { 0, 1, 5, 4 }, ref points));
-            /*правая*/
-            polygons.Add(new Polygon(new List<int>() { 3, 2, 6, 7 }, ref points));
-            /*передняя*/
-            polygons.Add(new Polygon(new List<int>() { 1, 2, 6, 5 }, ref points));
-            /*задняя*/
-            polygons.Add(new Polygon(new List<int>() { 0, 3, 7, 4 }, ref points));
+            //Задняя
+            polygons.Add(new Polygon(new List<int>() { 0, 1, 2, 3 }, ref points, "Задняя грань"));
+            //Передняя
+            polygons.Add(new Polygon(new List<int>() { 4, 5, 6, 7 }, ref points, "Передняя грань"));
+            /*Праваяя*/
+            polygons.Add(new Polygon(new List<int>() { 0, 1, 5, 4 }, ref points, "Правая грань"));
+            /*Левая*/
+            polygons.Add(new Polygon(new List<int>() { 3, 2, 6, 7 }, ref points, "Левая грань"));
+            /*Верхняя*/
+            polygons.Add(new Polygon(new List<int>() { 1, 2, 6, 5 }, ref points, "Верхняя грань"));
+            /*Нижняя*/
+            polygons.Add(new Polygon(new List<int>() { 0, 3, 7, 4 }, ref points, "Нижняя грань"));
 
-            for (int i = 0; i < polygons.Count; i++)
-                listBox1.Items.Add(i);
+            listBoxRefresh();
         }
 
+        private void listBoxRefresh()
+        {
+            listBox1.Items.Clear();
+            for (int i = 0; i < polygons.Count; i++)
+                if (polygons[i].Name != null)
+                    listBox1.Items.Add(polygons[i].Name);
+                else
+                    listBox1.Items.Add(i);
+        }
+
+        //Выбор фрагмента
         private void listBox1_Click(object sender, EventArgs e)
         {
             activePolygons.Clear();
@@ -270,60 +292,77 @@ namespace Program
 
             switch (e.KeyCode)
             {
-                case (Keys.A):
+                case (Keys.A): // перемещение камеры +
                     {
                         RotateAxis(2);
                         break;
                     }
-                case (Keys.D):
+                case (Keys.D): // перемещение камеры -
                     {
                         RotateAxis(-2);
                         break;
                     }
-                //case (Keys.S):
-                //    {
-                //        GL.MatrixMode(MatrixMode.Modelview);
-                //        GL.Rotate(-2, 1, 0, 0);
-                //        break;
-                //    }
-                case (Keys.G):
+                case (Keys.G): // Активация мода перемещения
                     {
                         ChangeActionMode(1);
                         break;
                     }
-                case (Keys.R):
+                case (Keys.R): // Активация мода вращения
                     {
                         ChangeActionMode(2);
                         break;
                     }
-                case (Keys.S):
+                case (Keys.S): // Активация мода масштабирования
                     {
                         ChangeActionMode(3);
                         break;
                     }
-                case (Keys.X):
+                case (Keys.X): //Активация оси X
                     {
                         ChangeActionAxis('X');
                         break;
                     }
-                case (Keys.Y):
+                case (Keys.Y): //Активация оси Y
                     {
                         ChangeActionAxis('Y');
                         break;
                     }
-                case (Keys.Z):
+                case (Keys.Z): //Активация оси Z
                     {
                         ChangeActionAxis('Z');
                         break;
                     }
-                case (Keys.Left):
+                case (Keys.Left): //Трансформация объекта +
                     {
                         Transform(-step);
                         break;
                     }
-                case (Keys.Right):
+                case (Keys.Right): //Трансформация объекта -
                     {
                         Transform(step);
+                        break;
+                    }
+                case (Keys.N): //Переименование фрагмента
+                    {
+                        if (activePolygons.Count == 1)
+                        {
+                            GetNameForm form = new GetNameForm();
+                            form.ShowDialog();
+                            if (form.DialogResult == DialogResult.OK)
+                            {
+                                foreach (Polygon p in polygons)
+                                    if (p.isActive)
+                                        p.Name = form.getFragmentName();
+                                listBoxRefresh();
+                            }                            
+                        }
+                        else
+                            MessageBox.Show("Выберете только 1 фрагмент", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        break;
+                    }
+                case (Keys.M): //Смена режима отображения граней
+                    {
+                        edgeMode = !edgeMode;
                         break;
                     }
                 default: break;
@@ -331,6 +370,7 @@ namespace Program
             glControl1.Invalidate();
         }
 
+        //Включение режима вращения относительно центра координат
         private void radioButton1_CheckedChanged(object sender, EventArgs e)
         {
             textBoxX.Text = "0";
@@ -338,6 +378,7 @@ namespace Program
             textBoxZ.Text = "0";
         }
 
+        //Включение режима вращения относительно центра фрагмента
         private void radioButton2_CheckedChanged(object sender, EventArgs e)
         {
             textBoxX.Text = "0";

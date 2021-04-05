@@ -50,3 +50,4 @@ E:\Study\4 course\Sem 2\Курсач(не мой)\ManagingMultFragments3D\Progra
 E:\Study\4 course\Sem 2\Курсач(не мой)\ManagingMultFragments3D\Program\obj\Debug\Program.csproj.CopyComplete
 E:\Study\4 course\Sem 2\Курсач(не мой)\ManagingMultFragments3D\Program\obj\Debug\Program.exe
 E:\Study\4 course\Sem 2\Курсач(не мой)\ManagingMultFragments3D\Program\obj\Debug\Program.pdb
+E:\Study\4 course\Sem 2\Курсач(не мой)\ManagingMultFragments3D\Program\obj\Debug\Program.GetNameForm.resources

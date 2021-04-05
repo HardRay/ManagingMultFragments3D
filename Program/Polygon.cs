@@ -22,6 +22,8 @@ namespace Program
         private Color polygonColor;
         private Color edgeColor;
         private bool active;
+        private string name;
+        private Num.Vector3 normal;
 
         public List<int> Points
         {
@@ -51,6 +53,18 @@ namespace Program
             }
         }
 
+        public string Name
+        {
+            get
+            {
+                return name;
+            }
+            set
+            {
+                this.name = value;
+            }
+        }
+
         //Конструктор
         public Polygon(List<int> arr, ref List<Num.Vector3> allPoints)
         {
@@ -60,6 +74,13 @@ namespace Program
             polygonColor = defaultColor;
             active = false;
             this.pointsList = allPoints;
+            //Расчёт нормали
+            normal = Num.Vector3.Cross(Num.Vector3.Subtract(allPoints[points[0]], allPoints[points[1]]), Num.Vector3.Subtract(allPoints[points[1]], allPoints[points[2]]));
+        }
+
+        public Polygon(List<int> arr, ref List<Num.Vector3> allPoints, string name) : this(arr,ref allPoints)
+        {
+            this.name = name;
         }
 
         //Выбор
@@ -77,25 +98,29 @@ namespace Program
             active = false;
         }
 
-        public void Draw()
+        public void Draw(bool edgeMode)
         {
             GL.PushMatrix();
             //Полигоны
             GL.Material(MaterialFace.FrontAndBack, MaterialParameter.AmbientAndDiffuse, polygonColor);
             GL.Begin(PrimitiveType.Polygon);
+            GL.Normal3(normal.X, normal.Y, normal.Z);
             Num.Matrix4x4 matrix = Num.Matrix4x4.CreateTranslation(10,10,10);
             Num.Vector4 p = new Num.Vector4(pointsList[0], 1);
             foreach (int i in points)
                 GL.Vertex3(pointsList[i].X, pointsList[i].Y, pointsList[i].Z);
             GL.End();
             //Рёбра
-            GL.Disable(EnableCap.Lighting);
-            GL.Color3(edgeColor);
-            GL.Begin(PrimitiveType.LineLoop);
-            foreach (int i in points)
-                GL.Vertex3(pointsList[i].X, pointsList[i].Y, pointsList[i].Z);
-            GL.End();
-            GL.Enable(EnableCap.Lighting);
+            if (edgeMode)
+            {
+                GL.Disable(EnableCap.Lighting);
+                GL.Color3(edgeColor);
+                GL.Begin(PrimitiveType.LineLoop);
+                foreach (int i in points)
+                    GL.Vertex3(pointsList[i].X, pointsList[i].Y, pointsList[i].Z);
+                GL.End();
+                GL.Enable(EnableCap.Lighting);
+            }
             GL.PopMatrix();
         }
     }
