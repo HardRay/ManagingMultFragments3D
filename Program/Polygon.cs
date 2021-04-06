@@ -83,6 +83,18 @@ namespace Program
             this.name = name;
         }
 
+        public Polygon(List<int> arr, ref List<Num.Vector3> allPoints, Num.Vector3 Normal)
+        {
+            points = new List<int>();
+            foreach (int i in arr)
+                points.Add(i);
+            polygonColor = defaultColor;
+            active = false;
+            this.pointsList = allPoints;
+            //Расчёт нормали
+            normal = Normal;
+        }
+
         //Выбор
         public void Select()
         {
@@ -98,11 +110,17 @@ namespace Program
             active = false;
         }
 
-        public void Draw(bool edgeMode)
+        public void Draw(bool edgeMode, bool lightMode = true)
         {
             GL.PushMatrix();
             //Полигоны
-            GL.Material(MaterialFace.FrontAndBack, MaterialParameter.AmbientAndDiffuse, polygonColor);
+            if (!lightMode)
+            {
+                GL.Disable(EnableCap.Lighting);
+                GL.Color3(polygonColor);
+            }
+            else
+                GL.Material(MaterialFace.FrontAndBack, MaterialParameter.AmbientAndDiffuse, polygonColor);
             GL.Begin(PrimitiveType.Polygon);
             GL.Normal3(normal.X, normal.Y, normal.Z);
             Num.Matrix4x4 matrix = Num.Matrix4x4.CreateTranslation(10,10,10);
@@ -119,8 +137,8 @@ namespace Program
                 foreach (int i in points)
                     GL.Vertex3(pointsList[i].X, pointsList[i].Y, pointsList[i].Z);
                 GL.End();
-                GL.Enable(EnableCap.Lighting);
             }
+            GL.Enable(EnableCap.Lighting);
             GL.PopMatrix();
         }
     }

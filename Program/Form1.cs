@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using OpenTK;
 using OpenTK.Graphics.OpenGL;
+using System.IO;
 using Num = System.Numerics;
 
 
@@ -16,6 +17,12 @@ namespace Program
 {
     public partial class Form1 : Form
     {
+        struct dpoint
+        {
+            public float d;
+            public Vector3 n;
+        }
+
         const int step = 1;
         bool loaded = false;
         List<Num.Vector3> points;
@@ -98,7 +105,7 @@ namespace Program
             //Куб
             //Отрисовка активных полигонов
             foreach (Polygon polygon in activePolygons)
-                    polygon.Draw(edgeMode);
+                    polygon.Draw(edgeMode, false);
             //Отрисовка неактивных полигонов
             foreach (Polygon polygon in polygons)
                 if (!polygon.isActive)
@@ -274,7 +281,7 @@ namespace Program
             }
         }
 
-        private void RotateAxis(int value)
+        private void RotateCamera(int value)
         {
             GL.MatrixMode(MatrixMode.Modelview);
             if (activeAxis == 'X')
@@ -283,8 +290,19 @@ namespace Program
                 GL.Rotate(value, 0, 1, 0);
             else
                 GL.Rotate(value, 0, 0, 1);
-
         }
+
+        private void TranslateCamera(int value)
+        {
+            GL.MatrixMode(MatrixMode.Modelview);
+            if (activeAxis == 'X')
+                GL.Translate(value, 0, 0);
+            else if (activeAxis == 'Y')
+                GL.Translate(0, value, 0);
+            else
+                GL.Translate(0, 0, value);
+        }
+
         //Обработка клавиш
         private void Form1_KeyDown(object sender, KeyEventArgs e)
         {
@@ -292,27 +310,37 @@ namespace Program
 
             switch (e.KeyCode)
             {
-                case (Keys.A): // перемещение камеры +
+                case (Keys.A): // вращение камеры +
                     {
-                        RotateAxis(2);
+                        RotateCamera(2);
                         break;
                     }
-                case (Keys.D): // перемещение камеры -
+                case (Keys.D): // вращение камеры -
                     {
-                        RotateAxis(-2);
+                        RotateCamera(-2);
                         break;
                     }
-                case (Keys.G): // Активация мода перемещения
+                case (Keys.W): // перемещение камеры +
+                    {
+                        TranslateCamera(2);
+                        break;
+                    }
+                case (Keys.S): // перемещение камеры -
+                    {
+                        TranslateCamera(-2);
+                        break;
+                    }
+                case (Keys.D1): // Активация мода перемещения
                     {
                         ChangeActionMode(1);
                         break;
                     }
-                case (Keys.R): // Активация мода вращения
+                case (Keys.D2): // Активация мода вращения
                     {
                         ChangeActionMode(2);
                         break;
                     }
-                case (Keys.S): // Активация мода масштабирования
+                case (Keys.D3): // Активация мода масштабирования
                     {
                         ChangeActionMode(3);
                         break;
@@ -365,6 +393,18 @@ namespace Program
                         edgeMode = !edgeMode;
                         break;
                     }
+                case (Keys.Q):
+                    {
+                        GL.MatrixMode(MatrixMode.Modelview);
+                        GL.Scale(0.9, 0.9, 0.9);
+                        break;
+                    }
+                case (Keys.E):
+                    {
+                        GL.MatrixMode(MatrixMode.Modelview);
+                        GL.Scale(1.1, 1.1, 1.1);
+                        break;
+                    }
                 default: break;
             }
             glControl1.Invalidate();
@@ -384,6 +424,86 @@ namespace Program
             textBoxX.Text = "0";
             textBoxY.Text = "0";
             textBoxZ.Text = "0";
+        }
+
+        // Чтение из файла
+        private void ReadFromFile()
+        {
+            if (openFileDialog1.ShowDialog() == DialogResult.Cancel)
+                return;
+            
+            points.Clear();
+            polygons.Clear();
+            // чтение карты глубины в двумерный массив
+            using (Bitmap n = new Bitmap(openFileDialog1.FileName))
+            {
+                int DataHeight = n.Size.Height;
+                int DataWidth = n.Size.Width;
+
+                dpoint[,] Data = new dpoint[DataHeight, DataWidth];
+                for (int i = 0; i < DataHeight; i++)
+                    for (int j = 0; j < DataWidth; j++)
+                    {
+                        float valuePixel = n.GetPixel(i, j).R;
+                        if (valuePixel == 255)
+                            Data[i, j].d = valuePixel;
+                        else
+                            Data[i, j].d = -valuePixel/20;
+                        Data[i, j].n = Vector3.Zero;
+                    }
+
+                // Запись точек объекта в список для дальнейшей работы
+                for (int i = 1; i < DataHeight; i++)
+                    for (int j = 1; j < DataWidth; j++)
+                        if (Data[i, j].d != 255)
+                            points.Add(new Num.Vector3(i, j, Data[i, j].d));
+
+                // построение полигонов
+                float Qz, Pz;
+                for (int i = 1; i < DataHeight - 2; i++)
+                    for (int j = 1; j < DataWidth - 2; j++)
+                        if (Data[i, j].d != 255 && Data[i + 1, j + 1].d != 255)
+                        {
+                            // если есть "левый" треуголиник
+                            if (Data[i + 1, j].d != 255)
+                            {
+                                Qz = Data[i + 1, j].d - Data[i, j].d;
+                                Pz = Data[i + 1, j + 1].d - Data[i, j].d;
+                                Num.Vector3 N = new Num.Vector3(Pz - Qz, Qz, 1);
+                                List<int> ind1 = new List<int>();
+                                ind1.Add(points.FindIndex(s => s.X == i && s.Y == j));
+                                ind1.Add(points.FindIndex(ind1[0], s => s.X == i + 1 && s.Y == j));
+                                ind1.Add(ind1[1] + 1);
+                                polygons.Add(new Polygon(ind1, ref points, N));
+                            }
+                            // если есть "правый" треуголиник
+                            if (Data[i, j + 1].d != 255)
+                            {
+                                Qz = Data[i, j + 1].d - Data[i, j].d;
+                                Pz = Data[i + 1, j + 1].d - Data[i, j].d;
+                                Num.Vector3 N = new Num.Vector3(Qz, Qz - Pz, 1);
+                                List<int> ind2 = new List<int>();
+                                ind2.Add(points.FindIndex(s => s.X == i && s.Y == j));
+                                ind2.Add(points.FindIndex(ind2[0], s => s.X == i + 1 && s.Y == j + 1));
+                                ind2.Add(ind2[0] + 1);
+                                polygons.Add(new Polygon(ind2, ref points, N));
+                            }
+                        }
+
+                // сдвиг геометрического центра объекта в начало координат
+                //float Xoffset = points.Average(p => p.X);
+                //float Yoffset = points.Average(p => p.Y);
+                //float Zoffset = points.Average(p => p.Z);
+                //for (int i = 0; i < points.Count; i++)
+                //    points[i] = new Num.Vector3(points[i].X - Xoffset, points[i].Y - Yoffset, points[i].Z - Zoffset);
+            }
+        }
+
+        private void button1_Click(object sender, EventArgs e)
+        {
+            ReadFromFile();
+            listBoxRefresh();
+            glControl1.Invalidate();
         }
     }
 }
